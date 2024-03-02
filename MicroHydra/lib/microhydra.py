@@ -1,6 +1,6 @@
 '''
 
-This is a collection of utility functions and classes for MicroHydra.
+This is a collection of utility functions for MicroHydra.
 
 This module was created to prevent 'launcher.py' from becoming too large,
 and to provide easy access to any other scripts or apps who want to use these same utilities.
@@ -109,6 +109,48 @@ def avg_color565(color1, color2):
     b = b // 2
     
     return combine_color565(r,g,b)
+
+
+def mix(val2, val1, fac=0.5):
+    """Mix two values to the weight of fac"""
+    output = (val1 * fac) + (val2 * (1.0 - fac))
+    return output
+
+
+def mix_angle_float(angle1, angle2, factor=0.5):
+    """take two angles as floats (range 0.0 to 1.0) and average them to the weight of factor.
+    Mainly for blending hue angles."""
+    # Ensure hue values are in the range [0, 1)
+    angle1 = angle1 % 1
+    angle2 = angle2 % 1
+
+    # Calculate the angular distance between hue1 and hue2
+    angular_distance = (angle2 - angle1 + 0.5) % 1 - 0.5
+
+    # Calculate the middle hue value
+    blended = (angle1 + angular_distance * factor) % 360
+
+    return blended
+
+def remap(value, in_min, in_max, clamp=True):
+    if clamp == True:
+        if value < in_min:
+            return 0.0
+        elif value > in_max:
+            return 1.0
+    # Scale the value to be in the range 0.0 to 1.0
+    return (value - in_min) / (in_max - in_min)
+
+
+def ping_pong(value,maximum):
+    odd_pong = (int(value / maximum) % 2 == 1)
+    mod = value % maximum
+    if odd_pong:
+        return maximum - mod
+    else:
+        return mod
+
+
 
 def rgb_to_hsv(r, g, b):
     '''

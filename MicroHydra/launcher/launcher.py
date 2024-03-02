@@ -1,17 +1,13 @@
 """
 
-VERSION: 0.7
+VERSION: 0.8
 
 CHANGES:
-    Adjusted battery level detection, improved launcher sort method,
-    added apps folders to import path,
-    added ability to jump to alphabetical location in apps list,
-    added new fbuf-based display driver to lib
+    Created mhconfig.Config, mhoverlay.UI_Overlay, cleaned up launcher.py, endured the horrors
 
-This program is designed to be used in conjunction with the "apploader.py" program, to select and launch MPy apps for the Cardputer.
+This program is designed to be used in conjunction with "main.py" apploader, to select and launch MPy apps.
 
 The basic app loading logic works like this:
-
  - apploader reads reset cause and RTC.memory to determine which app to launch
  - apploader launches 'launcher.py' when hard reset, or when RTC.memory is blank
  - launcher scans app directories on flash and SDCard to find apps
@@ -22,13 +18,16 @@ The basic app loading logic works like this:
  - app at given path now has control of device.
  - pressing the reset button will relaunch the launcher program, and so will calling machine.reset() from the app. 
 
-
-
 This approach was chosen to reduce the chance of conflicts or memory errors when switching apps.
-Because MicroPython completely resets between apps, the only "wasted" ram from the app switching process will be from launcher.py
-
+Because MicroPython completely resets between apps, the only "wasted" ram from the app switching process will be from main.py
 
 """
+#pre-allocate the buffers needed for our framebufs
+#displaybytes = bytearray(240*145*2)
+
+
+
+
 import machine, sys, network, gc, time, os, _thread
 import ntptime
 from launcher.icons import battery
@@ -37,9 +36,13 @@ from lib import keyboard
 from lib import beeper
 from lib.mhconfig import Config
 from font import vga2_16x32 as font
-from lib import st7789fbuf as st7789
-
-
+from lib import minifbuf as st7789
+buf2 = bytearray(240*39*2)
+buf1 = bytearray(240*38*2)
+buf0 = bytearray(240*35*2)
+buf3 = bytearray(240*23*2)
+gc.collect()
+beep = beeper.Beeper()
 gc.collect()
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Create Global Objects: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -59,11 +62,14 @@ try:
 except RuntimeError as e:
         print("Wifi WLAN object couldnt be created. Gave this error:",e)
 
-gc.collect()
 
-beep = beeper.Beeper()
+
 gc.collect()
 #init driver for the graphics immediately, (creates large framebuffer objects, trying to minimize memory fragmentation issues)
+# buf1 = bytearray(240*77*2)
+# buf0 = bytearray(240*35*2)
+# buf2 = bytearray(240*23*2)
+
 tft = st7789.ST7789(
     machine.SPI(1, baudrate=40000000, sck=machine.Pin(36), mosi=machine.Pin(35), miso=None),
     135,
@@ -74,7 +80,7 @@ tft = st7789.ST7789(
     backlight=machine.Pin(38, machine.Pin.OUT),
     rotation=1,
     color_order=st7789.BGR,
-    custom_framebufs =((0,0,240,35),(0,35,240,38),(0,73,240,39),(0,112,240,23))
+    custom_framebufs =((buf0, 0,0,240,35),(buf1, 0,35,240,38),(buf2, 0,73,240,39),(buf3, 0,112,240,23))
     ) # 	buf_idx: 0(status bar), 1(app icons), 2(app text), 3(scroll bar)
 
 gc.collect()
@@ -302,10 +308,9 @@ def center_text_x(text, char_width = 16):
     # display is 240 px wide
     start_coord = 120 - (str_width // 2)
     
-    return start_coord, str_width
+    return start_coord
 
-
-def easeOutCubic(x):
+def ease_out_cubic(x):
     return 1 - ((1 - x) ** 3)
 
 def ease_in_out_cubic(x):
@@ -391,7 +396,7 @@ def scroll_text(tft, scroll_factor, app_names, app_selector_index, prev_selector
             current_app_text = current_app_text[:12] + "..."
 
         #draw new text
-        tft.bitmap_text(font, current_app_text, center_text_x(current_app_text)[0] + text_scroll_position, 80, config['ui_color'], buf_idx=2)
+        tft.bitmap_text(font, current_app_text, center_text_x(current_app_text) + text_scroll_position, 80, config['ui_color'], buf_idx=2)
     tft.show(buf_idx=2)
     
     
@@ -417,9 +422,9 @@ def scroll_icon(tft, scroll_factor, app_names, app_selector_index, config, app_p
         #special menu options for settings
         if current_app_text == "UI Sound":
             if config['ui_sound']:
-                tft.bitmap_text(font, "On", center_text_x("On")[0] + icon_scroll_position, 36, config['ui_color'], buf_idx=1)
+                tft.bitmap_text(font, "On", center_text_x("On") + icon_scroll_position, 36, config['ui_color'], buf_idx=1)
             else:
-                tft.bitmap_text(font, "Off", center_text_x("Off")[0] + icon_scroll_position, 36, config.palette[3], buf_idx=1)
+                tft.bitmap_text(font, "Off", center_text_x("Off") + icon_scroll_position, 36, config.palette[3], buf_idx=1)
                 
         elif current_app_text == "Reload Apps":
             tft.bitmap_icons(icons, icons.RELOAD, config['ui_color'],104 + icon_scroll_position, 36, buf_idx=1)
@@ -437,7 +442,7 @@ def draw_status_bar(tft, config, batt):
     """Handle redrawing the status bar (buf_idx = 0)"""
     
     tft.fill(config['bg_color'], buf_idx=0)
-    tft.fill_rect(0,0,240, 16, config.palette[2], buf_idx=0)
+    tft.rect(0,0,240, 16, config.palette[2], fill=True, buf_idx=0)
     tft.hline(0,17,240, config.palette[0], buf_idx=0) # shadow
     
     #clock
@@ -686,7 +691,6 @@ def main_loop():
         prev_text_scroll_position = text_scroll_position
         prev_icon_scroll_position = icon_scroll_position
         
-
         
 # run the main loop!
 main_loop()

@@ -30,13 +30,33 @@ class UI_Overlay:
         else:
             raise ValueError("UI_Overlay must be initialized with either 'display_fbuf' or 'display_py'.")
     
+    @staticmethod
+    def split_lines(text, max_length=27):
+        """Split a string into multiple lines, based on max line-length."""
+        lines = []
+        current_line = ''
+        words = text.split()
+
+        for word in words:
+            if len(word) + len(current_line) >= max_length:
+                lines.append(current_line)
+                current_line = word
+            elif len(current_line) == 0:
+                current_line += word
+            else:
+                current_line += ' ' + word
+            
+        lines.append(current_line) # add final line
+            
+        return lines
+
     def popup(self,text):
         """
         Display a popup message with given text.
         Blocks until any button is pressed.
         """
         # split text into lines
-        lines = split_lines(text, max_length = 27)
+        lines = self.split_lines(text, max_length = 27)
         try:
             if self.compatibility_mode:
                 # use the st7789py driver to display popup
@@ -84,7 +104,7 @@ class UI_Overlay:
         Blocks until any button is pressed.
         """
         # split text into lines
-        lines = split_lines(text, max_length = 27)
+        lines = self.split_lines(text, max_length = 27)
         try:
             if self.compatibility_mode:
                 # use the st7789py driver to display popup
@@ -128,3 +148,58 @@ class UI_Overlay:
                 time.sleep_ms(1)
         except TypeError as e:
             raise TypeError(f"error() failed. Double check that 'UI_Overlay' object was initialized with correct keywords: {e}")
+        
+        
+if __name__ == "__main__":
+    # just for testing
+    from lib import st7789fbuf, keyboard
+    from lib.mhconfig import Config
+    from machine import Pin, SPI
+    from font import vga2_16x32 as font
+    import time
+    tft = st7789fbuf.ST7789(
+        SPI(1, baudrate=40000000, sck=Pin(36), mosi=Pin(35), miso=None),
+        135,
+        240,
+        reset=Pin(33, Pin.OUT),
+        cs=Pin(37, Pin.OUT),
+        dc=Pin(34, Pin.OUT),
+        backlight=Pin(38, Pin.OUT),
+        rotation=1,
+        color_order=st7789fbuf.BGR
+        )
+    
+    kb = keyboard.KeyBoard()
+    config = Config()
+    overlay = UI_Overlay(config=config, keyboard=kb, display_fbuf=tft)
+
+    # popup demo:
+    tft.fill(0)
+    tft.show()
+    time.sleep(0.5)
+    
+    overlay.popup("Lorem ipsum is placeholder text commonly used in the graphic, print, and publishing industries for previewing layouts and visual mockups.")
+    tft.fill(0)
+    tft.show()
+    time.sleep(0.5)
+    
+    overlay.error("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt")
+    tft.fill(0)
+    tft.show()
+    
+    # color palette
+    bar_width = 240 // len(config.palette)
+    for i in range(0,len(config.palette)):
+        tft.rect(bar_width*i, 0, bar_width, 135, config.palette[i], fill=True)
+        
+    # extended colors
+    bar_width = 240 // len(config.extended_colors)
+    for i in range(0,len(config.extended_colors)):
+        tft.rect(bar_width*i, 0, bar_width, 20, config.extended_colors[i], fill=True)
+        
+    config.save() # this should do nothing
+    
+    tft.show()
+    time.sleep(2)
+    tft.fill(0)
+    tft.show()
