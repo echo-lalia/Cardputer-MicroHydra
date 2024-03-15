@@ -269,6 +269,9 @@ def scan_apps(sd):
     #sort alphabetically without uppercase/lowercase discrimination:
     app_names.sort(key=lambda element: element.lower())
     
+    #add an appname for builtin file browser
+    app_names.append("Files")
+    app_paths["Files"] = "/launcher/files.py"
     #add an appname to refresh the app list
     app_names.append("Reload Apps")
     #add an appname to control the beeps
@@ -288,7 +291,6 @@ def scan_apps(sd):
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 def launch_app(app_path):
-    #print(f'launching {app_path}')
     rtc = machine.RTC()
     rtc.memory(app_path)
     print(f"Launching '{app_path}...'")
@@ -296,8 +298,6 @@ def launch_app(app_path):
     machine.freq(160_000_000)
     time.sleep_ms(10)
     machine.reset()
-    
-
 
 
 def center_text_x(text, char_width = 16):
@@ -618,8 +618,11 @@ def main_loop():
                     if len(key) == 1: # filter special keys and repeated presses
                         if key in 'abcdefghijklmnopqrstuvwxyz1234567890':
                             #search for that letter in the app list
-                            for idx, name in enumerate(app_names):
-                                if name.lower().startswith(key):
+                            for idx in range(len(app_names)):
+                                # this lets us scan starting at the current app_selector_index
+                                idx = (idx + app_selector_index) % len(app_names)
+                                name = app_names[idx]
+                                if name.lower().startswith(key) and idx != app_selector_index:
                                     #animation:
                                     if app_selector_index > idx:
                                         #scroll_direction = -1

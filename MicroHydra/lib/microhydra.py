@@ -1,3 +1,6 @@
+import math
+
+
 '''
 
 This is a collection of utility functions for MicroHydra.
@@ -7,68 +10,7 @@ and to provide easy access to any other scripts or apps who want to use these sa
 
 '''
 
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~         function definitions:          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-# ~~~~~~~~~~~~~~~~~~~~~~~~~  math stuff  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-def remap(value, in_min, in_max, clamp=True):
-    if clamp == True:
-        if value < in_min:
-            return 0.0
-        elif value > in_max:
-            return 1.0
-    # Scale the value to be in the range 0.0 to 1.0
-    return (value - in_min) / (in_max - in_min)
-
-def ping_pong(value,maximum):
-    odd_pong = (int(value / maximum) % 2 == 1)
-    mod = value % maximum
-    if odd_pong:
-        return maximum - mod
-    else:
-        return mod
-
-def mix(val2, val1, fac=0.5):
-    """Mix two values to the weight of fac"""
-    output = (val1 * fac) + (val2 * (1.0 - fac))
-    return output
-
-def mix_angle_float(angle1, angle2, factor=0.5):
-    """take two angles as floats (range 0.0 to 1.0) and average them to the weight of factor.
-    Mainly for blending hue angles."""
-    # Ensure hue values are in the range [0, 1)
-    angle1 = angle1 % 1
-    angle2 = angle2 % 1
-
-    # Calculate the angular distance between hue1 and hue2
-    angular_distance = (angle2 - angle1 + 0.5) % 1 - 0.5
-    # Calculate the middle hue value
-    blended = (angle1 + angular_distance * factor) % 360
-
-    return blended
-
-# ~~~~~~~~~~~~~~~~~~~~~~~~~  string stuff  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-def split_lines(text, max_length=27):
-    """Split a string into multiple lines, based on max line-length."""
-    lines = []
-    current_line = ''
-    words = text.split()
-
-    for word in words:
-        if len(word) + len(current_line) >= max_length:
-            lines.append(current_line)
-            current_line = word
-        else:
-            current_line += ' ' + word
-        
-    lines.append(current_line) # add final line
-        
-    return lines
-    
-# ~~~~~~~~~~~~~~~~~~~~~~~~~  color stuff  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 def separate_color565(color):
     """
@@ -185,7 +127,7 @@ def hsv_to_rgb(h, s, v):
     '''
     if s == 0.0:
         return v, v, v
-    i = int(h*6.0)
+    i = math.floor(h*6.0)
     f = (h*6.0) - i
     p = v*(1.0 - s)
     q = v*(1.0 - s*f)
@@ -231,9 +173,9 @@ def mix_color565(color1, color2, mix_factor=0.5):
     #convert back to rgb floats
     red,green,blue = hsv_to_rgb(hue,sat,val)
     #convert back to 565 range
-    red = int(red * 31)
-    green = int(green * 63)
-    blue = int(blue * 31)
+    red = math.floor(red * 31)
+    green = math.floor(green * 63)
+    blue = math.floor(blue * 31)
     
     return combine_color565(red,green,blue)
 
@@ -257,9 +199,9 @@ def darker_color565(color,mix_factor=0.5):
     #convert back to rgb floats
     r,g,b = hsv_to_rgb(h,s,v)
     #convert back to 565 range
-    r = int(r * 31)
-    g = int(g * 63)
-    b = int(b * 31)
+    r = math.floor(r * 31)
+    g = math.floor(g * 63)
+    b = math.floor(b * 31)
     
     return combine_color565(r,g,b)
 
@@ -282,9 +224,9 @@ def lighter_color565(color,mix_factor=0.5):
     #convert back to rgb floats
     r,g,b = hsv_to_rgb(h,s,v)
     #convert back to 565 range
-    r = int(r * 31)
-    g = int(g * 63)
-    b = int(b * 31)
+    r = math.floor(r * 31)
+    g = math.floor(g * 63)
+    b = math.floor(b * 31)
     
     return combine_color565(r,g,b)
 
@@ -306,6 +248,9 @@ def color565_shiftgreen(color, mix_factor=0.5):
     green = const(2016)
     return mix_color565(color, green, mix_factor)
     
-        
-
     
+    
+if __name__ == "__main__":
+    # just for testing
+    
+    print('output:', mix_color565(4421, 53243, 0.5))

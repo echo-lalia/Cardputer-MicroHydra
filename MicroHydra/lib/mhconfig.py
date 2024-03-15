@@ -98,11 +98,16 @@ def hsv_to_rgb(h, s, v):
     # Cannot get here
     
 
-def mix_color565(color1, color2, mix_factor=0.5):
+def mix_color565(color1, color2, mix_factor=0.5, hue_mix_fac=None, sat_mix_fac=None):
     """
     High quality mixing of two rgb565 colors, by converting through HSV color space.
     This function is probably too slow for running constantly in a loop, but should be good for occasional usage.
     """
+    if hue_mix_fac == None:
+        hue_mix_fac = mix_factor
+    if sat_mix_fac == None:
+        sat_mix_fac = mix_factor
+        
     #separate to components
     r1,g1,b1 = separate_color565(color1)
     r2,g2,b2 = separate_color565(color2)
@@ -115,9 +120,9 @@ def mix_color565(color1, color2, mix_factor=0.5):
     h2,s2,v2 = rgb_to_hsv(r2,g2,b2)
     
     #mix the hue angle
-    hue = mix_angle_float(h1,h2,factor=mix_factor)
+    hue = mix_angle_float(h1,h2,factor=hue_mix_fac)
     #mix the rest
-    sat = mix(s1, s2, mix_factor)
+    sat = mix(s1, s2, sat_mix_fac)
     val = mix(v1, v2, mix_factor)
     
     #convert back to rgb floats
@@ -181,29 +186,29 @@ def lighter_color565(color,mix_factor=0.5):
     return combine_color565(r,g,b)
 
 
-def color565_shiftred(color, mix_factor=0.5):
+def color565_shiftred(color, mix_factor=0.4, hue_mix_fac=0.8, sat_mix_fac=0.8):
     """
     Simple convenience function which shifts a color toward red.
     This was made for displaying 'negative' ui elements, while sticking to the central color theme.
     """
     _RED = const(63488)
-    return mix_color565(color, _RED, mix_factor)
+    return mix_color565(color, _RED, mix_factor, hue_mix_fac, sat_mix_fac)
     
 
-def color565_shiftgreen(color, mix_factor=0.5):
+def color565_shiftgreen(color, mix_factor=0.1, hue_mix_fac=0.4, sat_mix_fac=0.1):
     """
     Simple convenience function which shifts a color toward green.
     This was made for displaying 'positive' ui elements, while sticking to the central color theme.
     """
     _GREEN = const(2016)
-    return mix_color565(color, _GREEN, mix_factor)
+    return mix_color565(color, _GREEN, mix_factor, hue_mix_fac, sat_mix_fac)
 
-def color565_shiftblue(color, mix_factor=0.5):
+def color565_shiftblue(color, mix_factor=0.1, hue_mix_fac=0.4, sat_mix_fac=0.2):
     """
     Simple convenience function which shifts a color toward blue.
     """
     _BLUE = const(31)
-    return mix_color565(color, _BLUE, mix_factor)
+    return mix_color565(color, _BLUE, mix_factor, hue_mix_fac, sat_mix_fac)
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Config Class ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 class Config:
@@ -256,9 +261,9 @@ class Config:
         
         # Generate a further expanded palette, based on UI colors, shifted towards primary display colors.
         self.rgb_colors = (
-            color565_shiftred(darker_color565(mid_color), 0.25), # red color
-            color565_shiftgreen(ui_color, 0.25), # green color
-            color565_shiftblue(bg_color, 0.25) # blue color
+            color565_shiftred(lighter_color565(bg_color)), # red color
+            color565_shiftgreen(mid_color), # green color
+            color565_shiftblue(darker_color565(mid_color)) # blue color
             )
         
     def __getitem__(self, key):
